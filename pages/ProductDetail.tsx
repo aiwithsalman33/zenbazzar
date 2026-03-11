@@ -7,9 +7,10 @@ interface ProductDetailProps {
   product: Product;
   onBack: () => void;
   onAddToCart: (product: Product) => void;
+  onContactSales: () => void;
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart }) => {
+const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart, onContactSales }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <button
@@ -23,14 +24,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Left Col: Media */}
         <div>
-          <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg">
+          <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg animate-fade-in">
             <img src={product.imageUrl} alt={product.name} className="w-full h-auto object-cover aspect-video" />
           </div>
 
           <div className="mt-12 space-y-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">Description</h2>
-              <p className="text-slate-600 leading-relaxed text-lg">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4 animate-fade-up delay-100">Description</h2>
+              <p className="text-slate-600 leading-relaxed text-lg animate-fade-up delay-200">
                 {product.fullDescription}
               </p>
             </div>
@@ -51,7 +52,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
 
         {/* Right Col: Pricing & Info */}
         <div className="lg:sticky lg:top-24 h-fit">
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm animate-slide-in-right">
             <div className="flex items-center justify-between mb-4">
               <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-full">
                 {product.techTag}
@@ -103,13 +104,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
             </div>
           </div>
 
-          <div className="mt-8 bg-indigo-900 rounded-3xl p-8 text-white relative overflow-hidden">
+          <div className="mt-8 bg-indigo-900 rounded-3xl p-8 text-white relative overflow-hidden animate-slide-in-right delay-200">
             <div className="absolute top-0 right-0 p-4 opacity-20">
               <Zap className="h-24 w-24" />
             </div>
             <h3 className="text-xl font-bold mb-2">Need a custom build?</h3>
             <p className="text-indigo-200 mb-6">We can create custom automation workflows tailored to your specific stack.</p>
-            <button className="bg-white text-indigo-900 px-6 py-2 rounded-xl font-bold hover:bg-indigo-50 transition-colors">
+            <button
+              onClick={onContactSales}
+              className="bg-white text-indigo-900 px-6 py-2 rounded-xl font-bold hover:bg-indigo-50 transition-colors"
+            >
               Contact Sales
             </button>
           </div>

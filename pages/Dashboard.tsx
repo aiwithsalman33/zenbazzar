@@ -260,7 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, orders }) => {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-8 bg-rose-50/50 rounded-3xl border border-rose-100">
                   <div>
                     <h4 className="font-black text-rose-900 text-lg">Terminate Active Session</h4>
-                    <p className="text-sm text-rose-600/70 font-bold mt-1 max-w-sm">Securely clear your local tokens and exit the Developers Hub environment. All active downloads will be paused.</p>
+                    <p className="text-sm text-rose-600/70 font-bold mt-1 max-w-sm">Securely clear your local tokens and exit the Zenbazzar environment. All active downloads will be paused.</p>
                   </div>
                   <button
                     onClick={handleLogout}
@@ -290,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, orders }) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h1 className="text-5xl font-black text-brand-primary tracking-tighter uppercase italic leading-none mb-3">Invoice</h1>
-                  <p className="text-content-muted font-bold text-[10px] uppercase tracking-[0.4em]">Developers Hub Digital Assets</p>
+                  <p className="text-content-muted font-bold text-[10px] uppercase tracking-[0.4em]">Zenbazzar Digital Assets</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-content-muted uppercase tracking-widest mb-1">Reference</p>

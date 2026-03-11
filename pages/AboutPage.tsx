@@ -35,7 +35,7 @@ const AboutPage: React.FC = () => {
                         <CheckCircle2 size={48} />
                     </div>
                     <div>
-                        <h2 className="text-4xl font-black text-brand-primary uppercase italic tracking-tight">Deployment Scheduled</h2>
+                        <h2 className="text-4xl font-black text-brand-primary uppercase italic tracking-tight">We will get in touch</h2>
                         <p className="text-content-secondary mt-4 text-lg font-medium">Your custom project manifest has been received. Our senior architects will review your requirements and respond via the encrypted channel provided.</p>
                     </div>
                     <button
@@ -72,7 +72,7 @@ const AboutPage: React.FC = () => {
                     <div className="space-y-6">
                         <h2 className="text-4xl font-black text-brand-primary uppercase italic tracking-tight">The Visionaries</h2>
                         <p className="text-lg text-content-secondary font-medium leading-relaxed">
-                            Founded by Wasiq and Salman, Developers Hub is dedicated to providing the elite engineering community with production-ready assets that bypass the friction of standard development cycles.
+                            Founded by Wasiq and Salman, Zenbazzar is dedicated to providing the elite engineering community with production-ready assets that bypass the friction of standard development cycles.
                         </p>
                     </div>
 
@@ -97,20 +97,20 @@ const AboutPage: React.FC = () => {
                 {/* Contact Form */}
                 <div className="bg-white rounded-[48px] p-10 lg:p-14 border border-base-border shadow-2xl shadow-brand-primary/5">
                     <div className="mb-10 text-center">
-                        <h3 className="text-2xl font-black text-brand-primary uppercase italic tracking-tight mb-2">Initialize Request</h3>
-                        <p className="text-sm text-content-secondary font-medium uppercase tracking-widest">Protocol Version 2.0</p>
+                        <h3 className="text-2xl font-black text-brand-primary uppercase italic tracking-tight mb-2">Chat With Us</h3>
+                        <p className="text-sm text-content-secondary font-medium uppercase tracking-widest">WE WILL CONTACT YOU AND LETS CREATE NEW TECH</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-content-muted uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <User size={12} /> Operator Name
+                                    <User size={12} /> User Name
                                 </label>
                                 <input
                                     required
                                     type="text"
-                                    placeholder="John Doe"
+                                    placeholder="Enter Your Name"
                                     className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none focus:ring-2 focus:ring-brand-cta transition-all"
                                     value={formData.fullName}
                                     onChange={e => setFormData({ ...formData, fullName: e.target.value })}
@@ -118,12 +118,12 @@ const AboutPage: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-content-muted uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <Mail size={12} /> Secure Email
+                                    <Mail size={12} /> Email ID
                                 </label>
                                 <input
                                     required
                                     type="email"
-                                    placeholder="john@example.com"
+                                    placeholder="Enter Your Email ID"
                                     className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none focus:ring-2 focus:ring-brand-cta transition-all"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -133,12 +133,12 @@ const AboutPage: React.FC = () => {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-content-muted uppercase tracking-widest ml-1 flex items-center gap-2">
-                                < Rocket size={12} /> Project Objective
+                                < Rocket size={12} /> What's in your mind?
                             </label>
                             <input
                                 required
                                 type="text"
-                                placeholder="Enterprise AI Agent Grid"
+                                placeholder="Enter Your Idea"
                                 className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none focus:ring-2 focus:ring-brand-cta transition-all"
                                 value={formData.projectTitle}
                                 onChange={e => setFormData({ ...formData, projectTitle: e.target.value })}
@@ -147,7 +147,7 @@ const AboutPage: React.FC = () => {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-content-muted uppercase tracking-widest ml-1 flex items-center gap-2">
-                                <MessageSquare size={12} /> Mission Parameters
+                                <MessageSquare size={12} /> Requirement
                             </label>
                             <textarea
                                 required
@@ -169,7 +169,7 @@ const AboutPage: React.FC = () => {
                             ) : (
                                 <>
                                     <Send size={18} className="text-brand-cta" />
-                                    Transmit Request
+                                    Submit Request
                                 </>
                             )}
                         </button>

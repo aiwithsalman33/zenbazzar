@@ -27,10 +27,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold text-slate-900 flex items-center">
@@ -59,7 +59,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             ) : (
               <div className="space-y-6">
                 {items.map((item) => (
-                  <div key={item.id} className="flex space-x-4">
+                  <div key={item.id} className="flex space-x-4 animate-fade-up">
                     <img
                       src={item.imageUrl}
                       alt={item.name}

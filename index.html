@@ -4,7 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Developers Hub - Premium Engineering Assets</title>
+  <title>AutomateHub — AI Automation Workflow Marketplace</title>
+  <meta name="description" content="The #1 marketplace for n8n automation templates. Browse 1200+ workflows for Google Suite, Slack, Notion, HubSpot, Shopify, and 50+ integrations. Subscribe or buy individual templates." />
+  <meta name="keywords" content="n8n workflows, automation templates, AI agents, workflow marketplace, n8n templates" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -12,39 +15,49 @@
         extend: {
           colors: {
             brand: {
-              primary: '#0B3C5D',
-              secondary: '#1F7AE0',
-              cta: '#FFB703',
-              'cta-hover': '#E6A700',
-              success: '#16A34A',
+              primary: '#0A0A0F',
+              secondary: '#6C63FF',
+              cyan: '#00D4FF',
+              cta: '#6C63FF',
+              'cta-hover': '#5A52E0',
+              success: '#10B981',
               warning: '#F59E0B',
-              error: '#DC2626',
-              admin: '#020617',
-              'admin-accent': '#38BDF8'
+              error: '#EF4444',
+              admin: '#0D0D14',
+              'admin-accent': '#6C63FF'
             },
             base: {
-              main: '#F8FAFC',
-              card: '#FFFFFF',
-              border: '#E5E7EB'
+              main: '#0F0F1A',
+              card: '#12121F',
+              border: '#1E1E30'
             },
             content: {
-              primary: '#0F172A',
-              secondary: '#475569',
-              muted: '#94A3B8'
+              primary: '#FFFFFF',
+              secondary: '#A0A0B8',
+              muted: '#6B6B80'
             }
           },
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
+            heading: ['Space Grotesk', 'sans-serif'],
           }
         }
       }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
+      background-color: #0A0A0F;
+      color: #FFFFFF;
+    }
+
+    .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
     }
 
     .custom-scrollbar::-webkit-scrollbar {
@@ -52,16 +65,92 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: #0F0F1A;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #888;
+      background: #6C63FF;
       border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #555;
+      background: #5A52E0;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #6C63FF 0%, #00D4FF 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Glow effects */
+    .glow-purple {
+      box-shadow: 0 0 40px rgba(108, 99, 255, 0.3);
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+    }
+
+    /* Glassmorphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .glass-purple {
+      background: rgba(108, 99, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(108, 99, 255, 0.2);
+    }
+
+    /* Gradient borders */
+    .gradient-border {
+      position: relative;
+      border: 1px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, #6C63FF, #00D4FF);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    /* Animated gradient button */
+    .btn-gradient {
+      background: linear-gradient(135deg, #6C63FF 0%, #4F46E5 50%, #00D4FF 100%);
+      background-size: 200% auto;
+      transition: background-position 0.5s, transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-gradient:hover {
+      background-position: right center;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4);
+    }
+
+    /* Animated grid background */
+    .grid-bg {
+      background-image: linear-gradient(rgba(108, 99, 255, 0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(108, 99, 255, 0.05) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* Floating dots */
+    .dot-pattern {
+      background-image: radial-gradient(rgba(108, 99, 255, 0.15) 1px, transparent 1px);
+      background-size: 24px 24px;
     }
   </style>
   <script type="importmap">
@@ -78,7 +167,7 @@
   <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="bg-base-main text-content-primary">
+<body class="bg-brand-primary text-content-primary">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

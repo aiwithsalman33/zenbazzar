@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { ShoppingCart, User, Menu, X, Zap, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Zap, Menu, X, User, LogOut, Settings, LayoutDashboard, ShoppingBag } from 'lucide-react';
 
 interface NavbarProps {
   cartCount: number;
@@ -9,101 +9,171 @@ interface NavbarProps {
   onHomeClick: () => void;
   onAdminClick: () => void;
   onDashboardClick: () => void;
+  onProjectClick: () => void;
+  onAboutClick: () => void;
   onLogout: () => void;
   user: any;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
-  cartCount,
-  onCartClick,
   onStoreClick,
   onHomeClick,
   onAdminClick,
   onDashboardClick,
+  onAboutClick,
   onLogout,
   user
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-brand-primary backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          <div className="flex items-center gap-4">
-            {user && (
+    <nav className="sticky top-0 z-50 glass-panel-dark border-b border-white/5">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <div className="flex justify-between h-16 items-center">
+
+          {/* Logo */}
+          <button
+            onClick={onHomeClick}
+            className="flex items-center gap-2.5 group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-600/30">
+              <Zap size={16} className="text-white" />
+            </div>
+            <span className="text-lg font-heading font-bold text-white group-hover:gradient-text transition-colors">
+              AutomateHub
+            </span>
+          </button>
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8">
+            <button
+              onClick={onHomeClick}
+              className="text-sm font-medium text-content-secondary hover:text-white transition-colors"
+            >
+              Home
+            </button>
+            <button
+              onClick={onStoreClick}
+              className="text-sm font-medium text-content-secondary hover:text-white transition-colors"
+            >
+              Templates
+            </button>
+            <button
+              onClick={onAboutClick}
+              className="text-sm font-medium text-content-secondary hover:text-white transition-colors"
+            >
+              About
+            </button>
+            <button
+              onClick={() => { onHomeClick(); setTimeout(() => { const el = document.getElementById('pricing'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}
+              className="text-sm font-medium text-content-secondary hover:text-white transition-colors"
+            >
+              Pricing
+            </button>
+            {user?.role === 'admin' && (
               <button
-                onClick={onLogout}
-                className="flex items-center justify-center p-2.5 bg-white/5 hover:bg-brand-error/20 text-white/70 hover:text-brand-error rounded-xl transition-all border border-white/5 hover:border-brand-error/30 group shadow-lg shadow-black/10"
-                title="Immediate Termination"
+                onClick={onAdminClick}
+                className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors border-b border-purple-400/50"
               >
-                <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-                <span className="hidden lg:inline ml-2 text-[10px] font-black uppercase tracking-widest">Logout</span>
+                Admin Panel
               </button>
             )}
-
-            <div className="flex items-center cursor-pointer group" onClick={onHomeClick}>
-              <div className="bg-white/10 p-2 rounded-xl mr-3 group-hover:scale-110 transition-transform shadow-lg shadow-black/20">
-                <Zap className="h-6 w-6 text-brand-cta" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-black tracking-tighter text-white uppercase italic leading-none">Developers Hub</span>
-                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mt-0.5">Premium Engineering Assets</span>
-              </div>
-            </div>
           </div>
 
-          <div className="hidden md:flex items-center space-x-10">
-            <button onClick={onHomeClick} className="text-sm font-black uppercase tracking-widest text-white/70 hover:text-brand-cta transition-colors">Home</button>
-            <button onClick={onStoreClick} className="text-sm font-black uppercase tracking-widest text-white/70 hover:text-brand-cta transition-colors">Marketplace</button>
-            {/* Admin Panel access is restricted to direct login or hidden routes */}
-            {user?.role === 'admin' && (
-              <button onClick={onAdminClick} className="text-sm font-black uppercase tracking-widest text-brand-cta hover:text-brand-cta-hover transition-colors border-b-2 border-brand-cta">Admin Panel</button>
+          {/* Desktop Right */}
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <>
+                <button
+                  onClick={onDashboardClick}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl glass-panel text-sm font-medium text-white hover:bg-white/5 transition-all"
+                >
+                  <LayoutDashboard size={15} />
+                  Dashboard
+                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl glass-panel-purple hover:bg-purple-600/20 transition-all"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center">
+                      <User size={12} className="text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-white">{user.fullName?.split(' ')[0]}</span>
+                  </button>
+                  {userMenuOpen && (
+                    <div className="absolute right-0 top-12 w-48 glass-panel-dark rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-50 animate-fade-down">
+                      <button
+                        onClick={() => { onDashboardClick(); setUserMenuOpen(false); }}
+                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-content-secondary hover:text-white hover:bg-white/5 transition-all"
+                      >
+                        <LayoutDashboard size={15} /> Dashboard
+                      </button>
+                      <button
+                        onClick={() => { onDashboardClick(); setUserMenuOpen(false); }}
+                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-content-secondary hover:text-white hover:bg-white/5 transition-all"
+                      >
+                        <Settings size={15} /> Settings
+                      </button>
+                      <div className="border-t border-white/5 my-1" />
+                      <button
+                        onClick={() => { onLogout(); setUserMenuOpen(false); }}
+                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all"
+                      >
+                        <LogOut size={15} /> Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onDashboardClick}
+                  className="text-sm font-medium text-content-secondary hover:text-white transition-colors px-3 py-2"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={onDashboardClick}
+                  className="btn-gradient px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg shadow-purple-600/20"
+                >
+                  Get Started
+                </button>
+              </>
             )}
-
-            <div className="h-6 w-px bg-white/10"></div>
-
-            <button
-              onClick={onCartClick}
-              className="relative p-2.5 text-white hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-white/10"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center h-5 w-5 text-[10px] font-black leading-none text-white transform translate-x-1/3 -translate-y-1/3 bg-brand-cta rounded-full shadow-lg shadow-black/20">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={onDashboardClick}
-              className="flex items-center space-x-3 bg-brand-cta text-brand-primary px-6 py-3 rounded-2xl hover:bg-brand-cta-hover transition-all shadow-xl shadow-black/20 group active:scale-95"
-            >
-              <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center group-hover:bg-brand-primary/20 transition-colors">
-                <User className="h-3 w-3" />
-              </div>
-              <span className="text-sm font-black uppercase tracking-widest">{user ? user.fullName.split(' ')[0] : 'Authenticate'}</span>
-            </button>
           </div>
 
-          <div className="md:hidden flex items-center">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-slate-900 p-2 bg-slate-50 rounded-xl">
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
+          {/* Mobile toggle */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="md:hidden p-2 rounded-xl glass-panel text-white"
+          >
+            {isOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 p-6 space-y-6 animate-fade-up">
-          <button onClick={() => { onHomeClick(); setIsOpen(false); }} className="block w-full text-left font-black uppercase tracking-widest text-slate-900">Home</button>
-          <button onClick={() => { onStoreClick(); setIsOpen(false); }} className="block w-full text-left font-black uppercase tracking-widest text-slate-900">Marketplace</button>
-          <button onClick={() => { onCartClick(); setIsOpen(false); }} className="block w-full text-left font-black uppercase tracking-widest text-slate-900 flex justify-between">
-            <span>Cart</span>
-            <span className="bg-rose-500 text-white px-2 py-0.5 rounded-lg text-xs">{cartCount}</span>
-          </button>
-          <button onClick={() => { onDashboardClick(); setIsOpen(false); }} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest">
-            {user ? 'My Account' : 'Authenticate'}
-          </button>
+        <div className="md:hidden glass-panel-dark border-t border-white/5 p-6 space-y-4 animate-fade-down">
+          <button onClick={() => { onHomeClick(); setIsOpen(false); }} className="block w-full text-left text-sm font-medium text-content-secondary hover:text-white py-2">Home</button>
+          <button onClick={() => { onStoreClick(); setIsOpen(false); }} className="block w-full text-left text-sm font-medium text-content-secondary hover:text-white py-2">Templates</button>
+          <button onClick={() => { onAboutClick(); setIsOpen(false); }} className="block w-full text-left text-sm font-medium text-content-secondary hover:text-white py-2">About</button>
+          {user?.role === 'admin' && (
+            <button onClick={() => { onAdminClick(); setIsOpen(false); }} className="block w-full text-left text-sm font-medium text-purple-400 py-2">Admin Panel</button>
+          )}
+          <div className="pt-4 border-t border-white/5">
+            {user ? (
+              <>
+                <button onClick={() => { onDashboardClick(); setIsOpen(false); }} className="w-full py-3 btn-gradient rounded-xl text-white font-semibold text-sm mb-2">Dashboard</button>
+                <button onClick={() => { onLogout(); setIsOpen(false); }} className="w-full py-3 glass-panel rounded-xl text-red-400 font-semibold text-sm">Sign Out</button>
+              </>
+            ) : (
+              <button onClick={() => { onDashboardClick(); setIsOpen(false); }} className="w-full py-3 btn-gradient rounded-xl text-white font-semibold text-sm">Get Started</button>
+            )}
+          </div>
         </div>
       )}
     </nav>

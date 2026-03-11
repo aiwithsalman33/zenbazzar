@@ -24,7 +24,7 @@ const ManualUPIModal: React.FC<ManualUPIModalProps> = ({
     const [isUploading, setIsUploading] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const upiId = 'wasiqmohideen786@okicici'; // Placeholder UPI ID
+    const upiId = '8148035472@ibl'; // Placeholder UPI ID
     const formattedAmount = amount.toFixed(2);
     const upiData = `upi://pay?pa=${upiId}&pn=DevelopersHub&am=${formattedAmount}&cu=INR&tn=Order_${orderId}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiData)}`;

@@ -1,4 +1,4 @@
-# Production Build for Developers Hub
+# Production Build for Zenbazzar
 # Stage 1: Build Frontend
 FROM node:20-alpine AS build-stage
 WORKDIR /app

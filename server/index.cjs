@@ -513,13 +513,13 @@ app.patch('/api/orders/:id/status', authenticateToken, isAdmin, async (req, res)
                 }).join('');
 
                 const mailOptions = {
-                    from: `"Developers Hub" <${process.env.SMTP_USER}>`,
+                    from: `"Zenbazzar" <${process.env.SMTP_USER}>`,
                     to: orderDetail.email,
                     subject: `🚀 Your Assets are Ready! (Order ID: ${orderId.slice(0, 8).toUpperCase()})`,
                     html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
                             <div style="background-color: #0d1117; color: white; padding: 30px; text-align: center;">
-                                <h1 style="margin: 0; color: #00d2ff; font-style: italic;">Developers Hub</h1>
+                                <h1 style="margin: 0; color: #00d2ff; font-style: italic;">Zenbazzar</h1>
                                 <p style="margin: 5px 0 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Asset Deployment Manifest</p>
                             </div>
                             <div style="padding: 30px;">
@@ -536,11 +536,11 @@ app.patch('/api/orders/:id/status', authenticateToken, isAdmin, async (req, res)
                                 <p style="font-size: 14px; color: #666;">Note: These links are secure. Please do not share this email. You can also access these resources from your dashboard anytime.</p>
                                 
                                 <div style="text-align: center; margin-top: 30px;">
-                                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="padding: 15px 30px; background-color: #00d2ff; color: #0d1117; text-decoration: none; border-radius: 5px; font-weight: bold; text-transform: uppercase;">View Your Dashboard</a>
+                                    <a href="${process.env.FRONTEND_URL}/dashboard" style="padding: 15px 30px; background-color: #00d2ff; color: #0d1117; text-decoration: none; border-radius: 5px; font-weight: bold; text-transform: uppercase;">View Your Dashboard</a>
                                 </div>
                             </div>
                             <div style="background-color: #eee; padding: 20px; text-align: center; font-size: 12px; color: #888;">
-                                <p>&copy; ${new Date().getFullYear()} Developers Hub. Universal Asset Framework.</p>
+                                <p>&copy; ${new Date().getFullYear()} Zenbazzar. Universal Asset Framework.</p>
                             </div>
                         </div>
                     `
@@ -629,8 +629,44 @@ app.post('/api/custom-requests', async (req, res) => {
             'INSERT INTO custom_requests (id, full_name, email, project_title, description) VALUES (?, ?, ?, ?, ?)',
             [id, fullName, email, projectTitle, description]
         );
+
+        // Send Email Notification to Admin
+        const adminEmail = 'info.starfleet@gmail.com';
+        const mailOptions = {
+            from: `"Zenbazzar System" <${process.env.SMTP_USER}>`,
+            to: adminEmail,
+            subject: `🚀 New Custom Project Request: ${projectTitle}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
+                    <div style="background-color: #0d1117; color: white; padding: 20px; text-align: center;">
+                        <h2 style="margin: 0; color: #00d2ff;">New Project Request</h2>
+                    </div>
+                    <div style="padding: 20px;">
+                        <p><strong>From:</strong> ${fullName} (${email})</p>
+                        <p><strong>Project Title:</strong> ${projectTitle}</p>
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                            <strong>Description:</strong><br/>
+                            ${description.replace(/\n/g, '<br/>')}
+                        </div>
+                        <p style="margin-top: 20px; font-size: 12px; color: #666;">
+                            This request has been logged in the admin panel.
+                        </p>
+                    </div>
+                </div>
+            `
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`📧 Admin notification sent for request: ${id}`);
+        } catch (emailErr) {
+            console.error('❌ Failed to send admin notification email:', emailErr.message);
+            // Don't fail the request if email fails, just log it
+        }
+
         res.status(201).json({ message: 'Request submitted successfully' });
     } catch (err) {
+        console.error('❌ Custom Request Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

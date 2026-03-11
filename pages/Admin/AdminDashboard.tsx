@@ -1,35 +1,13 @@
 
 import React from 'react';
 import {
-  BarChart3,
-  Users,
-  ShoppingBag,
-  DollarSign,
-  Plus,
-  Trash2,
-  Edit2,
-  Search,
-  ArrowUpRight,
-  TrendingUp,
-  Package,
-  History,
-  Layers,
-  Check,
-  X,
-  Eye,
-  EyeOff,
-  Settings,
-  ChevronRight,
-  Zap,
-  ShieldCheck,
-  FileText,
-  LogOut,
-  Send,
-  ArrowRight,
-  AlertCircle,
-  ExternalLink
+  BarChart3, Users, ShoppingBag, DollarSign, Plus, Trash2, Edit2,
+  Search, ArrowUpRight, TrendingUp, Package, History, Layers, Check,
+  X, Eye, EyeOff, Settings, Zap, ShieldCheck, FileText, LogOut,
+  Send, AlertCircle, ExternalLink, UserCheck, Key, Calendar, Bell,
+  Star, Lock, Download, BarChart, RefreshCw
 } from 'lucide-react';
-import { Product, Order, OrderStatus, Category, TechTag, DeliveryMethod } from '../../types';
+import { Product, Order, OrderStatus, Category, TechTag, DeliveryMethod, PlanTier } from '../../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { supabaseService } from '../../services/localService';
 
@@ -41,14 +19,31 @@ interface AdminDashboardProps {
   onBack?: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  products,
-  orders,
-  categories,
-  onRefresh,
-  onBack
-}) => {
-  const [activeView, setActiveView] = React.useState<'overview' | 'products' | 'categories' | 'orders' | 'requests'>('overview');
+type AdminView = 'overview' | 'products' | 'categories' | 'orders' | 'requests' | 'users' | 'subscriptions' | 'access' | 'drops';
+
+const MOCK_USERS = [
+  { id: '1', fullName: 'Rahul Sharma', email: 'rahul@example.com', plan: 'Pro', status: 'active', joined: '2025-12-01', templatesAccessed: 34 },
+  { id: '2', fullName: 'Priya Nair', email: 'priya@example.com', plan: 'Starter', status: 'active', joined: '2026-01-15', templatesAccessed: 12 },
+  { id: '3', fullName: 'Arjun Mehta', email: 'arjun@example.com', plan: 'None', status: 'inactive', joined: '2026-02-20', templatesAccessed: 2 },
+];
+
+const MOCK_SUBSCRIPTIONS = [
+  { id: 'sub-1', user: 'Rahul Sharma', email: 'rahul@example.com', plan: PlanTier.PRO, amount: 999, startDate: '2025-12-01', endDate: '2026-12-01', status: 'active' },
+  { id: 'sub-2', user: 'Priya Nair', email: 'priya@example.com', plan: PlanTier.STARTER, amount: 499, startDate: '2026-01-15', endDate: '2027-01-15', status: 'active' },
+];
+
+const chartData = [
+  { month: 'Sep', revenue: 4200, signups: 12 },
+  { month: 'Oct', revenue: 6800, signups: 22 },
+  { month: 'Nov', revenue: 8400, signups: 31 },
+  { month: 'Dec', revenue: 11200, signups: 45 },
+  { month: 'Jan', revenue: 9700, signups: 38 },
+  { month: 'Feb', revenue: 13500, signups: 52 },
+  { month: 'Mar', revenue: 15800, signups: 67 },
+];
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ products, orders, categories, onRefresh, onBack }) => {
+  const [activeView, setActiveView] = React.useState<AdminView>('overview');
   const [isAddingProduct, setIsAddingProduct] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const [isAddingCategory, setIsAddingCategory] = React.useState(false);
@@ -57,41 +52,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
   const [customRequests, setCustomRequests] = React.useState<any[]>([]);
+  const [accessForm, setAccessForm] = React.useState({ userId: '', templateId: '', note: '', expiresAt: '' });
+  const [accessGranted, setAccessGranted] = React.useState(false);
 
   const fetchRequests = async () => {
     if (!localStorage.getItem('devhub_token')) return;
     try {
       const data = await supabaseService.getCustomRequests();
       setCustomRequests(data);
-    } catch (error) {
-      console.error('Failed to fetch requests:', error);
-    }
+    } catch (error) { console.error('Failed to fetch requests:', error); }
   };
 
-  React.useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const handleUpdateStatus = async (id: string, status: string) => {
-    try {
-      await supabaseService.updateRequestStatus(id, status);
-      fetchRequests();
-    } catch (error) {
-      console.error('Update status failed:', error);
-    }
-  };
+  React.useEffect(() => { fetchRequests(); }, []);
 
   const totalRevenue = orders.reduce((sum, o) => o.status === OrderStatus.COMPLETED ? sum + o.totalAmount : sum, 0);
+  const pendingOrders = orders.filter(o => o.status === OrderStatus.AWAITING_VERIFICATION).length;
 
   const handleSaveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const categoryIds = formData.getAll('categoryIds').filter(id => id !== '') as string[];
-    const featuresInput = formData.getAll('features');
-    const features = featuresInput.length > 0
-      ? (featuresInput[0] as string).split(',').map(s => s.trim()).filter(s => s !== '')
-      : [];
-
+    const features = (formData.get('features') as string).split(',').map(s => s.trim()).filter(Boolean);
     const productData: Product = {
       id: editingProduct ? editingProduct.id : 'prod-' + Math.random().toString(36).substr(2, 9),
       name: formData.get('name') as string,
@@ -103,46 +84,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       techTag: formData.get('techTag') as TechTag,
       deliveryMethod: formData.get('deliveryMethod') as DeliveryMethod,
       deliveryContent: formData.get('deliveryContent') as string,
-      imageUrl: formData.get('imageUrl') as string || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800',
-      features: features,
+      imageUrl: formData.get('imageUrl') as string || '',
+      features,
+      planAccessLevel: (formData.get('planAccessLevel') as PlanTier) || PlanTier.FREE,
+      isMonthlyDrop: formData.get('isMonthlyDrop') === 'on',
       isPublished: editingProduct ? editingProduct.isPublished : true,
       createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
     };
-
     try {
       await supabaseService.saveProduct(productData);
       setIsAddingProduct(false);
       setEditingProduct(null);
       onRefresh();
     } catch (error) {
-      console.error('Error saving product:', error);
       alert('Failed to save product');
     }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (confirm('Delete this template permanently?')) {
+      try { await supabaseService.deleteProduct(id); onRefresh(); } catch {}
+    }
+  };
+
+  const handleToggleProductStatus = async (product: Product) => {
+    try { await supabaseService.saveProduct({ ...product, isPublished: !product.isPublished }); onRefresh(); } catch {}
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setIsAddingProduct(true);
-  };
-
-  const handleToggleProductStatus = async (product: Product) => {
-    try {
-      await supabaseService.saveProduct({ ...product, isPublished: !product.isPublished });
-      onRefresh();
-    } catch (error) {
-      console.error('Error toggling status:', error);
-    }
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm('Permanently delete this asset?')) {
-      try {
-        await supabaseService.deleteProduct(id);
-        onRefresh();
-      } catch (error) {
-        console.error('Error deleting product:', error);
-      }
-    }
   };
 
   const handleSaveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -157,228 +128,239 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       isVisible: true,
       priority: categories.length + 1
     };
-
-    try {
-      await supabaseService.saveCategory(newCat);
-      setIsAddingCategory(false);
-      onRefresh();
-    } catch (error) {
-      console.error('Error saving category:', error);
-      alert('Failed to save category');
-    }
+    try { await supabaseService.saveCategory(newCat); setIsAddingCategory(false); onRefresh(); } catch {}
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Decommission this category?')) {
-      try {
-        await supabaseService.deleteCategory(id);
-        onRefresh();
-      } catch (error) {
-        console.error('Error deleting category:', error);
-      }
+    if (confirm('Delete this category?')) {
+      try { await supabaseService.deleteCategory(id); onRefresh(); } catch {}
     }
-  };
-
-  const handleDownloadInvoice = (order: Order) => {
-    setSelectedOrder(order);
-    setIsOrderModalOpen(true);
   };
 
   const handleApproveOrder = async (order: Order) => {
-    if (!confirm(`Authorize this transaction and grant asset access to ${order.userEmail || 'user'}?`)) return;
+    if (!confirm(`Approve payment for order #${order.id.slice(0, 8).toUpperCase()}?`)) return;
     try {
       await supabaseService.updateOrderStatus(order.id, OrderStatus.COMPLETED);
-
-      // Simulate Email Delivery
-      const deliverables = order.items.map(i => `- ${i.name}: ${i.deliveryContent}`).join('\n');
-      console.log(`%c[EMAIL SIMULATION] Sending to: ${order.userEmail}`, 'color: #00ff00; font-weight: bold');
-      console.log(`Payload contents:\n${deliverables}`);
-
-      alert(`Success! Order verified.\n\nDeliverable links have been dispatched to: ${order.userEmail || 'the user account'}.\n\nThe user can now also access these in their dashboard Library.`);
-
       onRefresh();
       setIsOrderModalOpen(false);
-    } catch (error) {
-      console.error('Approve error:', error);
-      alert('Authorization failed.');
-    }
+    } catch {}
   };
 
-  return (
-    <div className="flex bg-slate-50 min-h-screen font-sans selection:bg-brand-admin-accent selection:text-brand-admin">
-      {/* Sidebar */}
-      <aside className="w-80 bg-brand-admin text-white flex flex-col fixed inset-y-0 shadow-2xl z-[100] print:hidden">
-        <div className="p-10 flex-1 flex flex-col overflow-hidden">
-          <button
-            onClick={() => {
-              supabaseService.signOut().then(() => window.location.reload());
-            }}
-            className="flex items-center gap-2 mb-8 px-4 py-2 bg-white/5 hover:bg-brand-error/20 text-white/50 hover:text-brand-error rounded-xl transition-all border border-white/5 hover:border-brand-error/30 group w-fit"
-            title="Terminate Session"
-          >
-            <LogOut size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Immediate Logout</span>
-          </button>
+  const handleUpdateRequestStatus = async (id: string, status: string) => {
+    try { await supabaseService.updateRequestStatus(id, status); fetchRequests(); } catch {}
+  };
 
-          <div className="flex items-center space-x-4 mb-10 group cursor-pointer shrink-0" onClick={onBack}>
-            <div className="bg-brand-admin-accent/20 p-3 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-black/20">
-              <Zap className="h-6 w-6 text-brand-admin-accent" />
+  const NAV_ITEMS = [
+    { id: 'overview', icon: BarChart3, label: 'Dashboard' },
+    { id: 'products', icon: ShoppingBag, label: 'Templates' },
+    { id: 'categories', icon: Layers, label: 'Categories' },
+    { id: 'users', icon: Users, label: 'Users' },
+    { id: 'subscriptions', icon: Star, label: 'Subscriptions' },
+    { id: 'access', icon: Key, label: 'Manual Access' },
+    { id: 'drops', icon: Bell, label: 'Monthly Drops' },
+    { id: 'orders', icon: History, label: 'Orders' },
+    { id: 'requests', icon: FileText, label: 'Requests' },
+  ];
+
+  return (
+    <div className="flex bg-brand-primary min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-72 glass-panel-dark border-r border-white/5 flex flex-col fixed inset-y-0 z-50">
+        <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-cyan-500 flex items-center justify-center">
+              <Zap size={18} className="text-white" />
             </div>
             <div>
-              <span className="text-xl font-black tracking-tighter uppercase italic block leading-none">Developers Hub</span>
-              <span className="text-[10px] font-black text-brand-admin-accent uppercase tracking-widest mt-1">Command Console</span>
+              <div className="font-heading font-bold text-white text-sm">AutomateHub</div>
+              <div className="text-[10px] text-purple-400 font-semibold uppercase tracking-widest">Admin Console</div>
             </div>
           </div>
 
-          <nav className="space-y-3 overflow-y-auto custom-scrollbar flex-1 -mx-2 px-2">
-            {[
-              { id: 'overview', icon: BarChart3, label: 'Overview' },
-              { id: 'products', icon: ShoppingBag, label: 'Inventory' },
-              { id: 'categories', icon: Layers, label: 'Categories' },
-              { id: 'orders', icon: History, label: 'Orders' },
-              { id: 'requests', icon: FileText, label: 'Requests' }
-            ].map(item => (
+          <nav className="space-y-1">
+            {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveView(item.id as any)}
-                className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 ${activeView === item.id ? 'bg-brand-admin-accent text-brand-admin shadow-xl shadow-brand-admin-accent/20 translate-x-1' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setActiveView(item.id as AdminView)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${
+                  activeView === item.id
+                    ? 'bg-purple-600/20 text-purple-400 border border-purple-500/20'
+                    : 'text-content-muted hover:text-white hover:bg-white/5'
+                }`}
               >
-                <div className="flex items-center space-x-4">
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-black text-sm uppercase tracking-widest">{item.label}</span>
-                </div>
-                {activeView === item.id && <div className="w-1.5 h-1.5 bg-brand-admin rounded-full animate-pulse" />}
+                <item.icon size={16} />
+                <span className="text-sm font-medium">{item.label}</span>
+                {activeView === item.id && <div className="w-1.5 h-1.5 bg-purple-400 rounded-full ml-auto animate-pulse" />}
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-10 border-t border-white/5 space-y-4">
+        <div className="p-6 border-t border-white/5 space-y-2">
           <button
             onClick={onBack}
-            className="w-full py-4 bg-white/5 text-slate-400 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/10 border border-white/5 flex items-center justify-center space-x-2"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-content-muted hover:text-white hover:bg-white/5 transition-all text-sm"
           >
-            <ArrowUpRight size={14} />
-            <span>Launch Live Site</span>
+            <ArrowUpRight size={15} /> View Live Site
+          </button>
+          <button
+            onClick={() => { supabaseService.signOut().then(() => window.location.reload()); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/5 transition-all text-sm"
+          >
+            <LogOut size={15} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 ml-80 p-12 max-w-7xl print:ml-0 print:p-0">
+      {/* Main */}
+      <main className="flex-1 ml-72 p-8 max-w-[calc(100%-18rem)]">
+
+        {/* OVERVIEW */}
         {activeView === 'overview' && (
-          <div className="space-y-12">
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-8 animate-fade-up">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Ecosystem Pulse</h1>
-                <p className="text-content-secondary font-medium">Real-time performance metrics for Developers Hub.</p>
+                <h1 className="text-3xl font-heading font-bold text-white">Dashboard</h1>
+                <p className="text-content-secondary mt-1">AutomateHub platform overview</p>
               </div>
-              <div className="flex items-center gap-3 bg-brand-admin-accent/10 px-6 py-3 rounded-2xl border border-brand-admin-accent/20">
-                <div className="w-2 h-2 bg-brand-admin-accent rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
-                <span className="text-[10px] font-black text-brand-admin-accent uppercase tracking-[0.2em] italic">Command Deck Live</span>
-              </div>
-            </header>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <button onClick={onRefresh} className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-panel text-content-secondary hover:text-white text-sm">
+                <RefreshCw size={15} /> Refresh
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, color: 'brand-success' },
-                { label: 'Pending Authorizations', value: orders.filter(o => o.status === OrderStatus.AWAITING_VERIFICATION).length, color: 'brand-warning' },
-                { label: 'Total Assets', value: products.length, color: 'brand-secondary' },
-                { label: 'Pending Requests', value: customRequests.filter(r => r.status === 'pending').length, color: 'brand-cta' }
+                { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: 'green' },
+                { label: 'Pending Orders', value: pendingOrders, icon: <AlertCircle size={18} />, color: 'yellow' },
+                { label: 'Total Templates', value: products.length, icon: <Package size={18} />, color: 'purple' },
+                { label: 'Active Subscriptions', value: MOCK_SUBSCRIPTIONS.length, icon: <Star size={18} />, color: 'cyan' }
               ].map((stat, i) => (
-                <div key={i} className="bg-white p-8 rounded-[32px] border border-base-border shadow-sm group">
-                  <p className="text-content-muted text-[10px] font-black uppercase tracking-widest mb-4 group-hover:text-brand-admin-accent transition-colors">{stat.label}</p>
-                  <h3 className={`text-3xl font-black italic ${stat.color === 'brand-warning' && typeof stat.value === 'number' && stat.value > 0 ? 'text-brand-warning animate-pulse' : 'text-brand-primary'}`}>{stat.value}</h3>
+                <div key={i} className="gradient-border-card rounded-2xl p-5">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${
+                    stat.color === 'green' ? 'bg-green-500/15 text-green-400' :
+                    stat.color === 'yellow' ? 'bg-yellow-500/15 text-yellow-400' :
+                    stat.color === 'purple' ? 'bg-purple-600/15 text-purple-400' :
+                    'bg-cyan-500/15 text-cyan-400'
+                  }`}>{stat.icon}</div>
+                  <div className="text-xs text-content-muted font-medium mb-1">{stat.label}</div>
+                  <div className="text-2xl font-heading font-bold text-white">{stat.value}</div>
                 </div>
               ))}
+            </div>
+
+            <div className="gradient-border-card rounded-2xl p-6">
+              <h3 className="font-heading font-bold text-white mb-6">Revenue Over Time</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="revenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6C63FF" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6C63FF" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" tick={{ fill: '#6B6B80', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#6B6B80', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#12121F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'white' }} />
+                  <Area type="monotone" dataKey="revenue" stroke="#6C63FF" fill="url(#revenue)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}
 
+        {/* TEMPLATES */}
         {activeView === 'products' && (
-          <div className="space-y-8">
-            <header className="flex justify-between items-center">
+          <div className="space-y-6 animate-fade-up">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Inventory Management</h1>
-                <p className="text-content-secondary font-medium">Deploy and manage your digital hardware.</p>
+                <h1 className="text-3xl font-heading font-bold text-white">Templates</h1>
+                <p className="text-content-secondary mt-1">Manage your automation workflow library</p>
               </div>
               <button
                 onClick={() => { setEditingProduct(null); setIsAddingProduct(true); }}
-                className="bg-brand-admin-accent text-brand-admin px-8 py-4 rounded-[20px] font-black flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-brand-admin-accent/20"
+                className="btn-gradient px-5 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center gap-2"
               >
-                <Plus size={20} /> Deploy New Asset
+                <Plus size={16} /> Add Template
               </button>
-            </header>
+            </div>
 
-            <div className="bg-white rounded-[32px] border border-base-border shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-base-main bg-base-main/10">
-                <div className="relative">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted" />
+            <div className="gradient-border-card rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 flex gap-3">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted" />
                   <input
-                    placeholder="Search mission parameters..."
-                    className="w-full pl-16 pr-8 py-5 bg-white rounded-2xl font-bold border-none focus:ring-2 focus:ring-brand-admin-accent shadow-sm"
+                    placeholder="Search templates..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="dark-input w-full pl-10"
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="px-4 py-2 bg-base-main rounded-xl font-bold text-sm border-none focus:ring-2 focus:ring-brand-admin-accent cursor-pointer"
-                    >
-                      <option value="all">All Categories</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  className="dark-input px-4"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
-              <table className="w-full text-left">
-                <thead className="bg-base-main/50 text-content-muted text-[10px] font-black uppercase tracking-widest">
+              <table className="w-full admin-table">
+                <thead>
                   <tr>
-                    <th className="px-8 py-6">Asset</th>
-                    <th className="px-8 py-6">Architecture</th>
-                    <th className="px-8 py-6">Value</th>
-                    <th className="px-8 py-6">Status</th>
-                    <th className="px-8 py-6 text-right">Operations</th>
+                    <th>Template</th>
+                    <th>Plan Level</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Monthly Drop</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-base-main">
+                <tbody>
                   {products.filter(p =>
                     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
                     (selectedCategory === 'all' || p.categories.includes(selectedCategory))
                   ).map(p => (
-                    <tr key={p.id} className="hover:bg-base-main/30 transition-colors group">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <img src={p.imageUrl} className="w-14 h-14 rounded-xl object-contain bg-white shadow-md border border-base-border" alt="" />
+                    <tr key={p.id} className="group">
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <img src={p.imageUrl} className="w-10 h-10 rounded-xl object-cover bg-base-main" alt="" onError={e => { (e.target as HTMLImageElement).src = 'https://placehold.co/40x40/12121F/6C63FF?text=T'; }} />
                           <div>
-                            <p className="font-black text-brand-primary uppercase italic">{p.name}</p>
-                            <p className="text-[10px] text-content-muted font-bold uppercase tracking-widest">{p.techTag}</p>
+                            <div className="font-semibold text-white text-sm">{p.name}</div>
+                            <div className="text-xs text-content-muted">{p.techTag}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
-                        <span className="text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border bg-base-main text-content-muted border-base-border">
-                          {p.techTag}
+                      <td>
+                        <span className={`tag-chip text-xs capitalize ${
+                          p.planAccessLevel === PlanTier.PRO ? 'tag-chip' :
+                          p.planAccessLevel === PlanTier.FREE ? 'tag-chip-green' :
+                          'tag-chip-cyan'
+                        }`}>
+                          {p.planAccessLevel || 'free'}
                         </span>
                       </td>
-                      <td className="px-8 py-6">
-                        <p className="font-black text-brand-primary">₹{p.price.toLocaleString()}</p>
+                      <td className="font-semibold text-white text-sm">
+                        {p.price === 0 ? <span className="text-green-400">Free</span> : `₹${p.price}`}
                       </td>
-                      <td className="px-8 py-6">
+                      <td>
                         <button
                           onClick={() => handleToggleProductStatus(p)}
-                          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${p.isPublished ? 'bg-brand-success/10 text-brand-success' : 'bg-base-main text-content-muted'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                            p.isPublished ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-white/5 text-content-muted border border-white/10'
+                          }`}
                         >
-                          {p.isPublished ? <Check size={12} /> : <EyeOff size={12} />}
-                          {p.isPublished ? 'Operational' : 'Encrypted'}
+                          {p.isPublished ? <><Check size={11} /> Published</> : <><EyeOff size={11} /> Draft</>}
                         </button>
                       </td>
-                      <td className="px-8 py-6 text-right">
+                      <td>
+                        {p.isMonthlyDrop && <span className="tag-chip-cyan text-xs">🔥 This Month</span>}
+                      </td>
+                      <td className="text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleEditProduct(p)} className="p-3 bg-base-main text-content-muted hover:text-brand-admin-accent rounded-xl transition-all"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDeleteProduct(p.id)} className="p-3 bg-base-main text-content-muted hover:text-brand-error rounded-xl transition-all"><Trash2 size={16} /></button>
+                          <button onClick={() => handleEditProduct(p)} className="p-2 glass-panel text-content-muted hover:text-purple-400 rounded-xl transition-all"><Edit2 size={15} /></button>
+                          <button onClick={() => handleDeleteProduct(p.id)} className="p-2 glass-panel text-content-muted hover:text-red-400 rounded-xl transition-all"><Trash2 size={15} /></button>
                         </div>
                       </td>
                     </tr>
@@ -389,31 +371,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
+        {/* CATEGORIES */}
         {activeView === 'categories' && (
-          <div className="space-y-8">
-            <header className="flex justify-between items-center">
+          <div className="space-y-6 animate-fade-up">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Structural Classifications</h1>
-                <p className="text-content-secondary font-medium">Define the taxonomy of your marketplace assets.</p>
+                <h1 className="text-3xl font-heading font-bold text-white">Categories</h1>
+                <p className="text-content-secondary mt-1">Organize your template taxonomy</p>
               </div>
-              <button
-                onClick={() => setIsAddingCategory(true)}
-                className="bg-brand-admin-accent text-brand-admin px-8 py-4 rounded-[20px] font-black flex items-center gap-2"
-              >
-                <Plus size={20} /> Initialize Category
+              <button onClick={() => setIsAddingCategory(true)} className="btn-gradient px-5 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center gap-2">
+                <Plus size={16} /> Add Category
               </button>
-            </header>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categories.map(cat => (
-                <div key={cat.id} className="bg-white p-10 rounded-[40px] border border-base-border relative group overflow-hidden hover:shadow-2xl transition-all">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-xl bg-brand-primary text-white">
-                    <Layers size={32} />
+                <div key={cat.id} className="gradient-border-card rounded-2xl p-6 hover-card group">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600/15 flex items-center justify-center mb-4">
+                    <Layers size={18} className="text-purple-400" />
                   </div>
-                  <h3 className="text-2xl font-black text-brand-primary uppercase italic mb-2 tracking-tighter">{cat.name}</h3>
-                  <p className="text-content-secondary text-sm font-medium leading-relaxed mb-8">{cat.description}</p>
-                  <div className="flex items-center justify-between pt-8 border-t border-base-main">
-                    <span className="text-[10px] font-black text-content-muted uppercase tracking-widest">Level {cat.priority}</span>
-                    <button onClick={() => handleDeleteCategory(cat.id)} className="text-content-muted hover:text-brand-error transition-colors"><Trash2 size={18} /></button>
+                  <h3 className="font-heading font-bold text-white mb-1">{cat.name}</h3>
+                  <p className="text-sm text-content-muted mb-4 line-clamp-2">{cat.description}</p>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                    <span className="text-xs text-content-muted">Priority: {cat.priority}</span>
+                    <button onClick={() => handleDeleteCategory(cat.id)} className="text-content-muted hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -421,66 +403,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {activeView === 'orders' && (
-          <div className="space-y-8">
-            <header>
-              <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Fulfillment Ledger</h1>
-              <p className="text-content-secondary font-medium">Audit logs for all successful mission deployments.</p>
-            </header>
-
-            <div className="bg-white rounded-[32px] border border-base-border shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-base-main/50 text-content-muted text-[10px] font-black uppercase tracking-widest">
+        {/* USERS */}
+        {activeView === 'users' && (
+          <div className="space-y-6 animate-fade-up">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Users</h1>
+              <p className="text-content-secondary mt-1">Manage platform users</p>
+            </div>
+            <div className="gradient-border-card rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5">
+                <div className="relative">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted" />
+                  <input placeholder="Search users..." className="dark-input w-full pl-10" />
+                </div>
+              </div>
+              <table className="w-full admin-table">
+                <thead>
                   <tr>
-                    <th className="px-8 py-6">Mission Ref</th>
-                    <th className="px-8 py-6">Operator</th>
-                    <th className="px-8 py-6">Details</th>
-                    <th className="px-8 py-6">Value</th>
-                    <th className="px-8 py-6">Auth</th>
-                    <th className="px-8 py-6 text-right">Actions</th>
+                    <th>User</th>
+                    <th>Plan</th>
+                    <th>Joined</th>
+                    <th>Templates</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-base-main">
-                  {orders.map(order => (
-                    <tr key={order.id} className="hover:bg-base-main/30">
-                      <td className="px-8 py-6 font-black text-brand-primary uppercase italic text-sm">#DH-{order.id.slice(0, 8).toUpperCase()}</td>
-                      <td className="px-8 py-6">
-                        <p className="text-content-secondary font-bold text-xs uppercase truncate w-32">{order.userId}</p>
-                      </td>
-                      <td className="px-8 py-6">
+                <tbody>
+                  {MOCK_USERS.map(u => (
+                    <tr key={u.id}>
+                      <td>
                         <div className="flex items-center gap-3">
-                          {order.screenshotUrl ? (
-                            <button
-                              onClick={() => { setSelectedOrder(order); setIsOrderModalOpen(true); }}
-                              className="w-10 h-10 rounded-lg overflow-hidden border border-base-border hover:border-brand-cta transition-all"
-                            >
-                              <img src={order.screenshotUrl} className="w-full h-full object-cover" alt="" />
-                            </button>
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-base-main flex items-center justify-center border border-base-border">
-                              <X size={14} className="text-content-muted" />
-                            </div>
-                          )}
+                          <div className="w-9 h-9 rounded-xl bg-purple-600/15 flex items-center justify-center text-sm font-bold text-purple-400">
+                            {u.fullName.charAt(0)}
+                          </div>
                           <div>
-                            <p className="text-[10px] font-black text-content-muted uppercase tracking-widest leading-none mb-1">Transaction ID</p>
-                            <p className="text-xs font-black text-brand-primary break-all">{order.transactionId || 'N/A'}</p>
+                            <div className="font-semibold text-white text-sm">{u.fullName}</div>
+                            <div className="text-xs text-content-muted">{u.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-6 font-black text-brand-success">₹{order.totalAmount.toLocaleString()}</td>
-                      <td className="px-8 py-6">
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === OrderStatus.COMPLETED ? 'bg-brand-success/10 text-brand-success' :
-                          order.status === OrderStatus.AWAITING_VERIFICATION ? 'bg-brand-warning/10 text-brand-warning animate-pulse border border-brand-warning/20' :
-                            'bg-base-main text-content-muted border border-base-border'
-                          }`}>
-                          {order.status === OrderStatus.AWAITING_VERIFICATION ? 'Verify Payment' : order.status}
+                      <td>
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                          u.plan === 'Pro' ? 'bg-purple-600/10 text-purple-400 border-purple-500/20' :
+                          u.plan === 'Starter' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                          'bg-white/5 text-content-muted border-white/10'
+                        }`}>{u.plan}</span>
+                      </td>
+                      <td className="text-content-secondary text-sm">{u.joined}</td>
+                      <td className="text-white font-semibold">{u.templatesAccessed}</td>
+                      <td>
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${u.status === 'active' ? 'text-green-400 bg-green-500/10' : 'text-content-muted bg-white/5'}`}>
+                          {u.status}
                         </span>
                       </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-3">
-                          <button onClick={() => { setSelectedOrder(order); setIsOrderModalOpen(true); }} className="p-2.5 bg-base-main text-content-muted hover:text-brand-admin-accent rounded-xl"><Search size={16} /></button>
-                          <button onClick={() => handleDownloadInvoice(order)} className="p-2.5 bg-base-main text-content-muted hover:text-brand-secondary rounded-xl"><FileText size={16} /></button>
-                        </div>
+                      <td className="text-right">
+                        <button onClick={() => setActiveView('access')} className="text-xs text-purple-400 hover:text-purple-300 font-medium">Grant Access</button>
                       </td>
                     </tr>
                   ))}
@@ -490,276 +467,440 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {activeView === 'requests' && (
-          <div className="space-y-12 animate-fade-up">
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
-                <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Project Manifests</h1>
-                <p className="text-content-secondary font-medium">Custom build requests from the operative network.</p>
-              </div>
-            </header>
-
-            <div className="bg-white rounded-[40px] border border-base-border shadow-sm overflow-hidden">
-              <table className="w-full text-left border-collapse">
+        {/* SUBSCRIPTIONS */}
+        {activeView === 'subscriptions' && (
+          <div className="space-y-6 animate-fade-up">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Subscriptions</h1>
+              <p className="text-content-secondary mt-1">Manage active plans</p>
+            </div>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: 'Active Subs', value: MOCK_SUBSCRIPTIONS.filter(s => s.status === 'active').length, color: 'green' },
+                { label: 'Pro Plans', value: MOCK_SUBSCRIPTIONS.filter(s => s.plan === PlanTier.PRO).length, color: 'purple' },
+                { label: 'Starter Plans', value: MOCK_SUBSCRIPTIONS.filter(s => s.plan === PlanTier.STARTER).length, color: 'cyan' }
+              ].map((stat, i) => (
+                <div key={i} className="gradient-border-card rounded-2xl p-5">
+                  <div className="text-xs text-content-muted mb-1">{stat.label}</div>
+                  <div className="text-2xl font-heading font-bold text-white">{stat.value}</div>
+                </div>
+              ))}
+            </div>
+            <div className="gradient-border-card rounded-2xl overflow-hidden">
+              <table className="w-full admin-table">
                 <thead>
-                  <tr className="bg-base-main/50 border-b border-base-border">
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-content-muted">Requester</th>
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-content-muted">Mission Target</th>
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-content-muted">Details</th>
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-content-muted">Status</th>
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-content-muted text-right">Actions</th>
+                  <tr>
+                    <th>User</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-base-main">
-                  {customRequests.map((req) => (
-                    <tr key={req.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-8 py-6">
-                        <p className="font-black text-brand-primary text-sm uppercase italic">{req.fullName}</p>
-                        <p className="text-xs text-content-muted font-medium">{req.email}</p>
+                <tbody>
+                  {MOCK_SUBSCRIPTIONS.map(sub => (
+                    <tr key={sub.id}>
+                      <td>
+                        <div className="font-semibold text-white text-sm">{sub.user}</div>
+                        <div className="text-xs text-content-muted">{sub.email}</div>
                       </td>
-                      <td className="px-8 py-6">
-                        <p className="font-bold text-brand-primary text-sm uppercase">{req.projectTitle}</p>
-                        <p className="text-[10px] text-content-muted font-black uppercase tracking-widest mt-1">
-                          {new Date(req.createdAt).toLocaleDateString()}
-                        </p>
+                      <td>
+                        <span className={`text-xs font-semibold capitalize px-3 py-1 rounded-full border ${
+                          sub.plan === PlanTier.PRO ? 'bg-purple-600/10 text-purple-400 border-purple-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'
+                        }`}>{sub.plan}</span>
                       </td>
-                      <td className="px-8 py-6 max-w-xs">
-                        <p className="text-xs text-content-secondary line-clamp-2 font-medium leading-relaxed">
-                          {req.description}
-                        </p>
+                      <td className="font-bold text-white">₹{sub.amount}</td>
+                      <td className="text-content-secondary text-sm">{sub.startDate}</td>
+                      <td className="text-content-secondary text-sm">{sub.endDate}</td>
+                      <td><span className="text-xs text-green-400 bg-green-500/10 px-3 py-1 rounded-full">{sub.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* MANUAL ACCESS GRANT */}
+        {activeView === 'access' && (
+          <div className="space-y-6 animate-fade-up max-w-2xl">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Manual Access Grant</h1>
+              <p className="text-content-secondary mt-1">Grant template access to users bypassing payment</p>
+            </div>
+            {accessGranted ? (
+              <div className="gradient-border-card rounded-3xl p-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-green-500/15 flex items-center justify-center mx-auto mb-4">
+                  <Check size={28} className="text-green-400" />
+                </div>
+                <h3 className="text-xl font-heading font-bold text-white mb-2">Access Granted!</h3>
+                <p className="text-content-secondary mb-6">The user now has access to the specified template.</p>
+                <button onClick={() => setAccessGranted(false)} className="btn-gradient px-6 py-3 rounded-xl text-white font-semibold text-sm">Grant Another</button>
+              </div>
+            ) : (
+              <form onSubmit={e => { e.preventDefault(); setAccessGranted(true); }} className="gradient-border-card rounded-2xl p-8 space-y-5">
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Select User</label>
+                  <select className="dark-input w-full" value={accessForm.userId} onChange={e => setAccessForm({ ...accessForm, userId: e.target.value })}>
+                    <option value="">Choose user...</option>
+                    {MOCK_USERS.map(u => <option key={u.id} value={u.id}>{u.fullName} ({u.email})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Select Template</label>
+                  <select className="dark-input w-full" value={accessForm.templateId} onChange={e => setAccessForm({ ...accessForm, templateId: e.target.value })}>
+                    <option value="">Choose template...</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Expiry Date (Optional)</label>
+                  <input type="date" className="dark-input w-full" value={accessForm.expiresAt} onChange={e => setAccessForm({ ...accessForm, expiresAt: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Admin Note</label>
+                  <textarea rows={3} placeholder="Reason for granting access..." className="dark-input w-full resize-none" value={accessForm.note} onChange={e => setAccessForm({ ...accessForm, note: e.target.value })} />
+                </div>
+                <button type="submit" className="w-full py-3.5 btn-gradient rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2">
+                  <Key size={16} /> Grant Access
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* MONTHLY DROPS */}
+        {activeView === 'drops' && (
+          <div className="space-y-6 animate-fade-up">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Monthly Template Drops</h1>
+              <p className="text-content-secondary mt-1">Manage this month's new template additions</p>
+            </div>
+            <div className="gradient-border-card rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-heading font-bold text-white">March 2026 Drop</h3>
+                  <p className="text-sm text-content-muted mt-1">Mark templates as "This Month's Drop"</p>
+                </div>
+                <span className="tag-chip">Active</span>
+              </div>
+              <table className="w-full admin-table">
+                <thead>
+                  <tr>
+                    <th>Template</th>
+                    <th>Category</th>
+                    <th>Monthly Drop</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(p => (
+                    <tr key={p.id}>
+                      <td className="font-semibold text-white text-sm">{p.name}</td>
+                      <td className="text-content-muted text-sm">{p.techTag}</td>
+                      <td>
+                        {p.isMonthlyDrop
+                          ? <span className="tag-chip text-xs">🔥 Current Drop</span>
+                          : <span className="text-xs text-content-muted">—</span>
+                        }
                       </td>
-                      <td className="px-8 py-6">
+                      <td>
+                        <button
+                          onClick={() => handleToggleProductStatus({ ...p, isMonthlyDrop: !p.isMonthlyDrop } as any)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all ${
+                            p.isMonthlyDrop ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-purple-500/30 text-purple-400 hover:bg-purple-600/10'
+                          }`}
+                        >
+                          {p.isMonthlyDrop ? 'Remove from Drop' : 'Add to Drop'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ORDERS */}
+        {activeView === 'orders' && (
+          <div className="space-y-6 animate-fade-up">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Orders</h1>
+              <p className="text-content-secondary mt-1">Manage payment verifications</p>
+            </div>
+            <div className="gradient-border-card rounded-2xl overflow-hidden">
+              <table className="w-full admin-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map(order => (
+                    <tr key={order.id}>
+                      <td className="font-semibold text-white text-sm">#AH-{order.id.slice(0, 8).toUpperCase()}</td>
+                      <td className="text-content-secondary text-sm">{order.userEmail || order.userId.slice(0, 8)}</td>
+                      <td className="font-bold text-green-400">₹{order.totalAmount.toLocaleString()}</td>
+                      <td>
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                          order.status === OrderStatus.COMPLETED ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                          order.status === OrderStatus.AWAITING_VERIFICATION ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 animate-pulse' :
+                          'bg-white/5 text-content-muted border-white/10'
+                        }`}>
+                          {order.status === OrderStatus.AWAITING_VERIFICATION ? 'Needs Verification' : order.status}
+                        </span>
+                      </td>
+                      <td className="text-content-muted text-sm">{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="text-right">
+                        <button
+                          onClick={() => { setSelectedOrder(order); setIsOrderModalOpen(true); }}
+                          className="text-xs text-purple-400 hover:text-purple-300 font-medium"
+                        >
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* REQUESTS */}
+        {activeView === 'requests' && (
+          <div className="space-y-6 animate-fade-up">
+            <div>
+              <h1 className="text-3xl font-heading font-bold text-white">Custom Requests</h1>
+              <p className="text-content-secondary mt-1">Enterprise and custom build requests</p>
+            </div>
+            <div className="gradient-border-card rounded-2xl overflow-hidden">
+              <table className="w-full admin-table">
+                <thead>
+                  <tr>
+                    <th>Requester</th>
+                    <th>Project</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th className="text-right">Reply</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customRequests.map(req => (
+                    <tr key={req.id}>
+                      <td>
+                        <div className="font-semibold text-white text-sm">{req.fullName}</div>
+                        <div className="text-xs text-content-muted">{req.email}</div>
+                      </td>
+                      <td className="text-white text-sm font-medium">{req.projectTitle}</td>
+                      <td className="max-w-xs">
+                        <p className="text-xs text-content-secondary line-clamp-2">{req.description}</p>
+                      </td>
+                      <td>
                         <select
                           value={req.status}
-                          onChange={(e) => handleUpdateStatus(req.id, e.target.value)}
-                          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-none focus:ring-2 focus:ring-brand-cta cursor-pointer ${req.status === 'pending' ? 'bg-brand-warning/10 text-brand-warning' :
-                            req.status === 'responded' ? 'bg-brand-success/10 text-brand-success' :
-                              'bg-slate-100 text-slate-500'
-                            }`}
+                          onChange={e => handleUpdateRequestStatus(req.id, e.target.value)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border-none focus:ring-1 focus:ring-purple-500 cursor-pointer ${
+                            req.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                            req.status === 'responded' ? 'bg-green-500/10 text-green-400' :
+                            'bg-white/5 text-content-muted'
+                          }`}
                         >
                           <option value="pending">Pending</option>
                           <option value="responded">Responded</option>
                           <option value="archived">Archived</option>
                         </select>
                       </td>
-                      <td className="px-8 py-6 text-right">
+                      <td className="text-right">
                         <a
-                          href={`mailto:${req.email}?subject=Regarding your custom build request: ${req.projectTitle}`}
-                          className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-secondary transition-all shadow-lg shadow-brand-primary/10"
+                          href={`mailto:${req.email}?subject=Re: ${req.projectTitle}`}
+                          className="text-xs text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 justify-end"
                         >
-                          <Send size={12} className="text-brand-cta" />
-                          Reply via Mail
+                          <Send size={12} /> Reply
                         </a>
                       </td>
                     </tr>
                   ))}
+                  {customRequests.length === 0 && (
+                    <tr><td colSpan={5} className="text-center py-12 text-content-muted text-sm">No requests yet</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* Global Modal Overlays */}
+        {/* ADD/EDIT PRODUCT MODAL */}
         {isAddingProduct && (
-          <div className="fixed inset-0 z-[200] bg-brand-admin/60 backdrop-blur-md flex items-center justify-center p-8">
-            <div className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-              <div className="p-8 border-b border-base-border flex justify-between items-center bg-base-main/50">
-                <h2 className="text-2xl font-black text-brand-primary uppercase italic">{editingProduct ? 'Update Blueprint' : 'Deploy New Asset'}</h2>
-                <button onClick={() => { setIsAddingProduct(false); setEditingProduct(null); }} className="p-3 hover:bg-white rounded-2xl transition-all text-content-muted hover:text-brand-error"><X /></button>
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="glass-panel-dark rounded-3xl w-full max-w-3xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <h2 className="font-heading font-bold text-white text-lg">{editingProduct ? 'Edit Template' : 'Add New Template'}</h2>
+                <button onClick={() => { setIsAddingProduct(false); setEditingProduct(null); }} className="text-content-muted hover:text-white p-2 rounded-xl hover:bg-white/5"><X size={18} /></button>
               </div>
-              <form onSubmit={handleSaveProduct} className="p-10 overflow-y-auto custom-scrollbar space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Asset Name</label>
-                    <input name="name" defaultValue={editingProduct?.name} required className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none" />
+              <form onSubmit={handleSaveProduct} className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Title *</label>
+                    <input name="name" required defaultValue={editingProduct?.name} placeholder="e.g. Slack to Notion Sync" className="dark-input w-full" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Categories (Ctrl+Click)</label>
-                    <select name="categoryIds" multiple defaultValue={editingProduct?.categories} className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none min-h-[120px]">
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Categories</label>
+                    <select name="categoryIds" multiple defaultValue={editingProduct?.categories} className="dark-input w-full min-h-[80px]">
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Base Price (₹)</label>
-                    <input name="price" type="number" step="1" defaultValue={editingProduct?.price} required className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none text-brand-success" />
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Price (₹) *</label>
+                    <input name="price" type="number" step="1" min="0" required defaultValue={editingProduct?.price} className="dark-input w-full" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Distribution Hub (URL)</label>
-                    <input name="deliveryContent" defaultValue={editingProduct?.deliveryContent} required className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none" />
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Discount Price (₹)</label>
+                    <input name="discountPrice" type="number" step="1" min="0" defaultValue={editingProduct?.discountPrice} className="dark-input w-full" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Asset Visual URL</label>
-                    <input name="imageUrl" defaultValue={editingProduct?.imageUrl} className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none" />
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Integration Tag *</label>
+                    <select name="techTag" defaultValue={editingProduct?.techTag} required className="dark-input w-full">
+                      {Object.values(TechTag).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Plan Access Level</label>
+                    <select name="planAccessLevel" defaultValue={editingProduct?.planAccessLevel || 'free'} className="dark-input w-full">
+                      <option value="free">Free</option>
+                      <option value="starter">Starter</option>
+                      <option value="pro">Pro</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Delivery Method *</label>
+                    <select name="deliveryMethod" defaultValue={editingProduct?.deliveryMethod} required className="dark-input w-full">
+                      {Object.values(DeliveryMethod).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Download URL / Link *</label>
+                    <input name="deliveryContent" required defaultValue={editingProduct?.deliveryContent} placeholder="https://..." className="dark-input w-full" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Preview Image URL</label>
+                    <input name="imageUrl" defaultValue={editingProduct?.imageUrl} placeholder="https://..." className="dark-input w-full" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Mission Pitch (Description)</label>
-                  <textarea name="description" defaultValue={editingProduct?.description} required rows={2} className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none resize-none" />
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Short Description *</label>
+                  <textarea name="description" required rows={2} defaultValue={editingProduct?.description} className="dark-input w-full resize-none" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Core Capabilities (Comma-separated)</label>
-                  <input name="features" defaultValue={editingProduct?.features.join(', ')} required className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none" />
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Full Description</label>
+                  <textarea name="fullDescription" rows={4} defaultValue={editingProduct?.fullDescription} className="dark-input w-full resize-none" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-content-muted ml-1">Operational Blueprints (Documentation)</label>
-                  <textarea name="fullDescription" defaultValue={editingProduct?.fullDescription} required rows={5} className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none resize-none" />
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Features (comma-separated)</label>
+                  <input name="features" defaultValue={editingProduct?.features?.join(', ')} placeholder="Import n8n JSON, Auto-sync, Webhook support" className="dark-input w-full" />
                 </div>
-                <button type="submit" className="w-full bg-brand-admin text-white py-6 rounded-[24px] font-black uppercase tracking-[0.2em] text-sm hover:translate-y-[-2px] transition-all flex items-center justify-center gap-3">
-                  <Zap size={20} className="text-brand-admin-accent" />
-                  {editingProduct ? 'Finalize Blueprint Update' : 'Initialize Deployment'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" name="isMonthlyDrop" id="isMonthlyDrop" defaultChecked={editingProduct?.isMonthlyDrop} className="w-4 h-4 accent-purple-600" />
+                  <label htmlFor="isMonthlyDrop" className="text-sm text-content-secondary">Mark as This Month's New Drop 🔥</label>
+                </div>
+                <div className="flex gap-3 pt-4 border-t border-white/5">
+                  <button type="button" onClick={() => { setIsAddingProduct(false); setEditingProduct(null); }} className="flex-1 py-3 glass-panel rounded-xl text-content-muted font-semibold text-sm hover:text-white transition-all">Cancel</button>
+                  <button type="submit" className="flex-1 py-3 btn-gradient rounded-xl text-white font-semibold text-sm">{editingProduct ? 'Save Changes' : 'Add Template'}</button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
+        {/* ADD CATEGORY MODAL */}
         {isAddingCategory && (
-          <div className="fixed inset-0 z-[200] bg-brand-admin/60 backdrop-blur-md flex items-center justify-center p-8">
-            <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden">
-              <div className="p-8 border-b border-base-border flex justify-between items-center bg-base-main/50">
-                <h2 className="text-2xl font-black text-brand-primary uppercase italic">Define Category</h2>
-                <button onClick={() => setIsAddingCategory(false)} className="p-3 hover:bg-white rounded-2xl transition-all text-content-muted hover:text-brand-error"><X /></button>
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="glass-panel-dark rounded-3xl w-full max-w-md border border-white/10 shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <h2 className="font-heading font-bold text-white">Add Category</h2>
+                <button onClick={() => setIsAddingCategory(false)} className="text-content-muted hover:text-white p-2 rounded-xl hover:bg-white/5"><X size={18} /></button>
               </div>
-              <form onSubmit={handleSaveCategory} className="p-10 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-content-muted">Name</label>
-                  <input name="name" required className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none" />
+              <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Category Name *</label>
+                  <input name="name" required placeholder="e.g. Shopify" className="dark-input w-full" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-content-muted">Mission Statement</label>
-                  <textarea name="description" required rows={3} className="w-full px-6 py-4 bg-base-main rounded-2xl font-bold border-none resize-none" />
+                <div>
+                  <label className="text-xs font-semibold text-content-muted uppercase tracking-wider block mb-2">Description</label>
+                  <textarea name="description" rows={3} placeholder="What templates are in this category?" className="dark-input w-full resize-none" />
                 </div>
-                <button type="submit" className="w-full bg-brand-admin text-white py-5 rounded-[24px] font-black uppercase tracking-widest hover:translate-y-[-2px] transition-all">Initialize Classification</button>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setIsAddingCategory(false)} className="flex-1 py-3 glass-panel rounded-xl text-content-muted font-semibold text-sm hover:text-white transition-all">Cancel</button>
+                  <button type="submit" className="flex-1 py-3 btn-gradient rounded-xl text-white font-semibold text-sm">Add Category</button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
+        {/* ORDER REVIEW MODAL */}
         {isOrderModalOpen && selectedOrder && (
-          <div className="fixed inset-0 z-[300] bg-brand-admin/80 backdrop-blur-xl flex items-center justify-center p-8 print:p-0 print:bg-white print:fixed print:inset-0 sm:z-[200]">
-            <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden max-h-[95vh] flex flex-col print:shadow-none print:rounded-none">
-              <div className="p-8 border-b border-base-border flex justify-between items-center bg-base-main/50 print:hidden">
-                <h2 className="text-xl font-black text-brand-primary uppercase italic flex items-center gap-2">
-                  <ShieldCheck size={20} className="text-brand-admin-accent" />
-                  Mission Manifest
-                </h2>
-                <button onClick={() => setIsOrderModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all text-content-muted hover:text-brand-error"><X /></button>
+          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="glass-panel-dark rounded-3xl w-full max-w-xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <h2 className="font-heading font-bold text-white">Order Review</h2>
+                <button onClick={() => setIsOrderModalOpen(false)} className="text-content-muted hover:text-white p-2 rounded-xl hover:bg-white/5"><X size={18} /></button>
               </div>
-              <div className="p-12 overflow-y-auto custom-scrollbar flex-1 space-y-12 print:overflow-visible">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h1 className="text-5xl font-black text-brand-primary tracking-tighter uppercase italic leading-none mb-3">Invoice</h1>
-                    <p className="text-content-muted font-bold text-[10px] uppercase tracking-[0.4em]">Developers Hub Engineering Hub</p>
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="glass-panel rounded-xl p-4">
+                    <div className="text-xs text-content-muted mb-1">Order ID</div>
+                    <div className="font-semibold text-white text-sm">#AH-{selectedOrder.id.slice(0, 8).toUpperCase()}</div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-content-muted uppercase tracking-widest mb-1">Reference ID</p>
-                    <p className="text-2xl font-black text-brand-primary italic">#DH-{selectedOrder.id.toUpperCase()}</p>
+                  <div className="glass-panel rounded-xl p-4">
+                    <div className="text-xs text-content-muted mb-1">Total</div>
+                    <div className="font-heading font-bold text-white text-lg">₹{selectedOrder.totalAmount.toLocaleString()}</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-12 bg-base-main/30 p-8 rounded-[32px] border border-base-border">
-                  <div>
-                    <p className="text-[10px] font-black text-content-muted uppercase tracking-widest mb-4">Operator Clearance</p>
-                    <p className="font-extrabold text-brand-primary text-sm break-all">{selectedOrder.userId}</p>
-                    {selectedOrder.status === OrderStatus.COMPLETED ? (
-                      <p className="text-[10px] font-black text-brand-success uppercase tracking-widest mt-2 flex items-center gap-1">
-                        <Check size={12} /> Verified Transaction
-                      </p>
-                    ) : (
-                      <p className="text-[10px] font-black text-brand-warning uppercase tracking-widest mt-2 flex items-center gap-1">
-                        <AlertCircle size={12} /> Awaiting Authorization
-                      </p>
-                    )}
+                {selectedOrder.transactionId && (
+                  <div className="glass-panel rounded-xl p-4">
+                    <div className="text-xs text-content-muted mb-1">Transaction ID</div>
+                    <div className="font-semibold text-white text-sm break-all">{selectedOrder.transactionId}</div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-content-muted uppercase tracking-widest mb-4">Timestamp</p>
-                    <p className="font-extrabold text-brand-primary text-sm">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                    {selectedOrder.transactionId && (
-                      <p className="text-[10px] font-black text-brand-primary uppercase mt-2 italic">Ref: {selectedOrder.transactionId}</p>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {selectedOrder.screenshotUrl && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center px-2">
-                      <p className="text-[10px] font-black text-content-muted uppercase tracking-widest">Payment Proof (Screenshot)</p>
-                      <a
-                        href={selectedOrder.screenshotUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black text-brand-cta uppercase tracking-widest flex items-center gap-1 hover:underline"
-                      >
-                        <ExternalLink size={12} /> View Full Meta-data
-                      </a>
-                    </div>
-                    <div className="rounded-[40px] overflow-hidden border-4 border-base-main shadow-2xl bg-base-main/10 relative group">
+                  <div>
+                    <div className="text-xs text-content-muted mb-2">Payment Screenshot</div>
+                    <div className="rounded-2xl overflow-hidden border border-white/10">
                       <img
                         src={selectedOrder.screenshotUrl}
-                        alt="Payment Proof"
-                        className="w-full h-auto max-h-[500px] object-contain cursor-zoom-in transition-all duration-500 group-hover:scale-[1.05]"
+                        alt="Payment proof"
+                        className="w-full max-h-[300px] object-contain bg-base-main cursor-zoom-in"
                         onClick={() => window.open(selectedOrder.screenshotUrl, '_blank')}
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://placehold.co/600x400/f8fafc/64748b?text=Snapshot+Loading+Failure';
-                        }}
                       />
-                      <div className="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                        <Search className="text-white h-12 w-12" />
-                      </div>
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-6">
-                  <p className="text-[10px] font-black text-content-muted uppercase tracking-widest px-2">Payload Contents</p>
-                  <div className="space-y-4">
-                    {selectedOrder.items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-base-border shadow-sm">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-base-main rounded-xl flex items-center justify-center border border-base-border">
-                            <Package size={20} className="text-brand-primary" />
-                          </div>
-                          <div>
-                            <p className="font-black text-brand-primary uppercase italic text-sm">{item.name}</p>
-                            <p className="text-[10px] text-content-muted font-bold uppercase tracking-widest">{item.techTag}</p>
-                          </div>
-                        </div>
-                        <p className="font-black text-brand-primary">₹{item.price.toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center p-10 bg-brand-primary text-white rounded-[40px] shadow-2xl shadow-brand-primary/30 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-20 bg-white/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Total Mission Valuation</p>
-                    <p className="text-5xl font-black italic tracking-tighter">₹{selectedOrder.totalAmount.toLocaleString()}</p>
-                  </div>
-                  <div className="relative z-10 text-right">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Auth Status</p>
-                    <div className="flex items-center gap-2 justify-end">
-                      <div className={`w-2 h-2 rounded-full animate-pulse ${selectedOrder.status === OrderStatus.COMPLETED ? 'bg-brand-success' : 'bg-brand-warning'}`}></div>
-                      <p className={`font-black uppercase tracking-widest text-sm italic ${selectedOrder.status === OrderStatus.COMPLETED ? 'text-brand-success' : 'text-brand-warning'}`}>
-                        {selectedOrder.status === OrderStatus.COMPLETED ? 'Secured' : 'Pending Auth'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-12 border-t border-base-main flex flex-col gap-4 print:hidden">
+                <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
                   {selectedOrder.status === OrderStatus.AWAITING_VERIFICATION && (
                     <button
                       onClick={() => handleApproveOrder(selectedOrder)}
-                      className="w-full py-5 bg-brand-success text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-xl hover:shadow-brand-success/20 transition-all flex items-center justify-center gap-3"
+                      className="w-full py-3.5 btn-gradient rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2"
                     >
-                      <Check size={18} />
-                      Verify Payment & Grant Access
+                      <Check size={16} /> Verify Payment & Grant Access
                     </button>
                   )}
-                  <button onClick={() => window.print()} className="w-full py-5 bg-base-main text-brand-primary rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white border border-transparent hover:border-base-border transition-all flex items-center justify-center gap-3">
-                    <FileText size={18} />
-                    Generate Hard Copy Manifest
+                  <button
+                    onClick={() => setIsOrderModalOpen(false)}
+                    className="w-full py-3 glass-panel rounded-xl text-content-muted font-semibold text-sm hover:text-white transition-all"
+                  >
+                    Close
                   </button>
                 </div>
               </div>

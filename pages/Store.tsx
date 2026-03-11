@@ -35,8 +35,8 @@ const Store: React.FC<StoreProps> = ({
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+    <div className="max-w-screen-2xl mx-auto px-6 lg:px-12 py-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 animate-fade-down">
         <h1 className="text-4xl font-black text-brand-primary tracking-tight uppercase italic">Marketplace</h1>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
