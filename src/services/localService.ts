@@ -1,7 +1,10 @@
 import { Product, Category, Order, OrderStatus } from '../types';
 
-const isProd = import.meta.env.PROD;
-const BASE_URL = import.meta.env.VITE_API_URL || (isProd ? '' : 'http://localhost:5000');
+const baseUrl = import.meta.env.VITE_API_URL;
+if (!baseUrl) {
+    throw new Error('VITE_API_URL is required in .env and Vercel environment variables');
+}
+const BASE_URL = baseUrl;
 const API_URL = `${BASE_URL}/api`;
 
 const getHeaders = () => {

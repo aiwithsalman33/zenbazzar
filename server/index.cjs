@@ -11,8 +11,33 @@ if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath });
     console.log('📝 Environment variables loaded from .env');
 } else {
-    console.warn('⚠️ No .env file found at:', envPath);
+    console.error('❌ No .env file found at:', envPath);
+    process.exit(1);
 }
+
+const requiredEnv = [
+    'PORT',
+    'DB_HOST',
+    'DB_USER',
+    'DB_PASSWORD',
+    'DB_NAME',
+    'DB_PORT',
+    'JWT_SECRET',
+    'FRONTEND_URL',
+    'GDRIVE_CLIENT_EMAIL',
+    'GDRIVE_PRIVATE_KEY',
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USER',
+    'SMTP_PASS'
+];
+
+requiredEnv.forEach((key) => {
+    if (!process.env[key] || process.env[key].trim() === '') {
+        console.error(`❌ Missing required environment variable ${key} in .env`);
+        process.exit(1);
+    }
+});
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -84,11 +109,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 // MySQL Connection - Supports local and Railway injected variables
 const pool = mysql.createPool({
-    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
-    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '1234',
-    database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'devhub_db',
-    port: process.env.MYSQLPORT || 3306,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306),
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
